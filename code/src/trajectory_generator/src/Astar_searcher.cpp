@@ -205,6 +205,12 @@ double Astarpath::getHeu(MappingNodePtr node1, MappingNodePtr node2) {
   double heu;
   double tie_breaker;
   
+  double dx = abs(node1->index(0) - node2->index(0));
+  double dy = abs(node1->index(1) - node2->index(1));
+  double dz = abs(node1->index(2) - node2->index(2));
+  heu = sqrt(dx * dx + dy * dy + dz * dz);
+  tie_breaker = 1.0001;
+  heu *= tie_breaker;
   return heu;
 }
 
@@ -262,10 +268,19 @@ bool Astarpath::AstarSearch(Vector3d start_pt, Vector3d end_pt) {
   while (!Openset.empty()) {
     //1.弹出g+h最小的节点
     //????
+    auto current_it = Openset.begin();
+    currentPtr = current_it->second;
+    Openset.erase(current_it);
     //2.判断是否是终点
     //????
+    if (currentPtr->index == endPtr->index) {
+        terminatePtr = currentPtr;
+        return true;
+    }
+
     //3.拓展当前节点
     //????
+    AstarGetSucc(currentPtr, neighborPtrSets, edgeCostSets);
     for(unsigned int i=0;i<neighborPtrSets.size();i++)
     {
       
@@ -281,11 +296,22 @@ bool Astarpath::AstarSearch(Vector3d start_pt, Vector3d end_pt) {
       {
         //4.填写信息，完成更新
         //???
+        neighborPtr->g_score = tentative_g_score;
+        neighborPtr->f_score = tentative_g_score + getHeu(neighborPtr, endPtr);
+        neighborPtr->Father = currentPtr;
+        neighborPtr->id = 1;
+        Openset.insert(make_pair(neighborPtr->f_score, neighborPtr));
         continue;
       }
       else if(neighborPtr->id==1)
       {
         //???
+        if(neighborPtr->g_score > tentative_g_score){
+          neighborPtr->g_score = tentative_g_score;
+          neighborPtr->Father = currentPtr;
+          neighborPtr->f_score = tentative_g_score + getHeu(neighborPtr, endPtr);
+          Openset.insert(make_pair(neighborPtr->f_score, neighborPtr));
+        }
       continue;
       }
     }
@@ -315,7 +341,9 @@ terminatePtr=terminatePtr->Father;
    * **/
 
   // ???
-
+  for (auto it = front_path.rbegin(); it != front_path.rend(); ++it) {
+    path.push_back((*it)->coord);
+}
   return path;
 }
 
